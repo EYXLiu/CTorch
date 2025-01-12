@@ -284,13 +284,27 @@ std::unique_ptr<CTorch::CTensor> CTorch::CTensor::sigmoid(bool deriv) const {
         if (dtype == CTorch::Int32) {
             if (deriv) {
                 temp.push_back(std::any_cast<std::int32_t>(arr[i].get()->getValue()) * (1 - std::any_cast<std::int32_t>(arr[i].get()->getValue())));
+            } else {
+                temp.push_back(1 / (1 + std::exp(std::any_cast<std::int32_t>(arr[i].get()->getValue()))));
             }
         } else if (dtype == CTorch::Int64) {
-            temp.push_back(std::any_cast<std::int64_t>(arr[i].get()->getValue()) * (1 - std::any_cast<std::int64_t>(arr[i].get()->getValue())));
+            if (deriv) {
+                temp.push_back(std::any_cast<std::int64_t>(arr[i].get()->getValue()) * (1 - std::any_cast<std::int64_t>(arr[i].get()->getValue())));
+            } else {
+                temp.push_back(1 / (1 + std::exp(std::any_cast<std::int64_t>(arr[i].get()->getValue()))));
+            }
         } else if (dtype == CTorch::Float32) {
-            temp.push_back(std::any_cast<float>(arr[i].get()->getValue()) * (1 - std::any_cast<float>(arr[i].get()->getValue())));
+            if (deriv) {
+                temp.push_back(std::any_cast<float>(arr[i].get()->getValue()) * (1 - std::any_cast<float>(arr[i].get()->getValue())));
+            } else {
+                temp.push_back(1 / (1 + std::exp(std::any_cast<float>(arr[i].get()->getValue()))));
+            }
         } else if (dtype == CTorch::Float64) {
-            temp.push_back(std::any_cast<double>(arr[i].get()->getValue()) * (1 - std::any_cast<double>(arr[i].get()->getValue())));
+            if (deriv) {
+                temp.push_back(std::any_cast<double>(arr[i].get()->getValue()) * (1 - std::any_cast<double>(arr[i].get()->getValue())));
+            } else {
+                temp.push_back(1 / (1 + std::exp(std::any_cast<double>(arr[i].get()->getValue()))));
+            }
         } else {
             throw std::logic_error("invalid data type");
         }
