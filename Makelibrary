@@ -1,0 +1,27 @@
+CXX = g++
+CXXFLAGS = -std=c++17 -Wall -MMD -I/opt/X11/include
+LIBRARY = libmylibrary.a       # Change the name of the target to a static library
+OBJECTS = dtype.o ctensor.o ccontainer.o
+DEPENDS = ${OBJECTS:.o=.d}
+
+# Rule to create the static library
+${LIBRARY}: ${OBJECTS}
+	${AR} rcs $@ ${OBJECTS}   # Use ar to create the library
+
+# Link to executable (if needed, for testing or other purposes)
+${EXEC}: ${OBJECTS}
+	${CXX} ${CXXFLAGS} ${OBJECTS} -o ${EXEC} -L/opt/X11/lib -lX11
+
+-include ${DEPENDS}
+
+# Rule to compile .cc files into .o object files
+%.o: %.cc
+	${CXX} ${CXXFLAGS} -c $< -o $@
+	# Generate dependency files
+	${CXX} ${CXXFLAGS} -MM $< > ${<:.cc=.d}
+
+.PHONY: clean
+
+# Clean up object files, the static library, and the executable
+clean:
+	rm -f ${OBJECTS} ${EXEC} ${LIBRARY} ${DEPENDS}
