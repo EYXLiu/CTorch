@@ -18,6 +18,20 @@ std::unique_ptr<CTorch::CTensor> Cnn::CSequential::backward(std::unique_ptr<CTor
     }
     return ct;
 };
+std::unique_ptr<CTorch::CTensor> Cnn::CSequential::backgrad(std::unique_ptr<CTorch::CTensor>& grad) {
+    std::unique_ptr<CTorch::CTensor> ct = std::move(grad);
+    for (auto& m : modules) {
+         ct = m->backgrad(ct);
+    }
+    return ct;
+}
+std::unique_ptr<CTorch::CTensor> Cnn::CSequential::backprop(std::unique_ptr<CTorch::CTensor>& grad) {
+    std::unique_ptr<CTorch::CTensor> ct = std::move(grad);
+    for (auto& m : modules) {
+        ct = m->backprop(ct);
+    }
+    return ct;
+}
 void Cnn::CSequential::append(std::unique_ptr<Cnn::CModule> module) {
     modules.push_back(std::move(module));
 };

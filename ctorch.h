@@ -103,6 +103,8 @@ class CTorch {
                 //purely for backprop for linear layer
                 std::unique_ptr<CTensor> sigmoid(bool deriv=false) const;
                 std::unique_ptr<CTensor> sumLin() const;
+                void append(std::unique_ptr<CTensor>& ct);
+                std::unique_ptr<CTensor> pop();
                 // transposes (0, 1) im not entirely sure how to swap higher dimension tensors but its not that useful so :D
                 std::unique_ptr<CTensor> t() const;
                 class Size {

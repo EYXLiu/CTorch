@@ -351,6 +351,17 @@ std::unique_ptr<CTorch::CTensor> CTorch::CTensor::sumLin() const {
     return std::make_unique<CTorch::CTensor>(returned, dtype).get()->t();
 }
 
+void CTorch::CTensor::append(std::unique_ptr<CTorch::CTensor>& ct) {
+    arr.push_back(std::move(ct));
+}
+
+std::unique_ptr<CTorch::CTensor> CTorch::CTensor::pop() {
+    std::unique_ptr<DType> dtype = std::move(arr.front());
+    std::unique_ptr<CTorch::CTensor> ct(static_cast<CTorch::CTensor*>(dtype.release()));
+    arr.erase(arr.begin());
+    return ct;
+}
+
 std::unique_ptr<CTorch::CTensor> CTorch::CTensor::t() const {
     try {
         std::vector<std::any> temp = std::any_cast<std::vector<std::any>>(getValue());
