@@ -20,50 +20,45 @@ std::unique_ptr<CTorch::CTensor> Cnn::CLinear::forward(std::unique_ptr<CTorch::C
     input = std::move(ct);
     std::unique_ptr<CTorch::CTensor> new_ct = input->matmul(*weights->t());
     output = input->matmul(*weights->t());
+    activated = output->sigmoid(true);
     if (bias) {
         new_ct = new_ct->add(*biases);
         output = output->add(*biases);
     };
     return new_ct;
 }
-std::unique_ptr<CTorch::CTensor> Cnn::CLinear::backward(std::unique_ptr<CTorch::CTensor>& ct) {
-    assert(ct->size() == 1 && "Expects tensor of size 1");
 
-    std::unique_ptr<CTorch::CTensor> sig_ct = ct->sigmoid(true);
-    std::unique_ptr<CTorch::CTensor> delta = input->t()->matmul(*ct);
+std::tuple<std::unique_ptr<CTorch::CTensor>, std::unique_ptr<CTorch::CTensor>> Cnn::CLinear::backgrad(std::unique_ptr<CTorch::CTensor>& grad, std::unique_ptr<CTorch::CTensor>& target) {
+    std::unique_ptr<CTorch::CTensor> new_grad = std::move(grad);
+    std::unique_ptr<CTorch::CTensor> prev;
+    if ((*new_grad->shape().get())[1] == 0) {
 
-    std::unique_ptr<CTorch::CTensor> weight_gradient = input->t()->matmul(*delta);
-    weights = weights->add(*weight_gradient->mul(learning_rate));
+        std::unique_ptr<CTorch::CTensor> output_grad = output->lossDerivative(target);
 
-    if (bias) {
-        std::unique_ptr<CTorch::CTensor> bias_gradient = delta->sumLin();
-        biases = biases->add(*bias_gradient->mul(learning_rate));
+        std::unique_ptr<CTorch::CTensor> sigmoid_deriv = output->sigmoidDerivative();
+        std::unique_ptr<CTorch::CTensor> delta = output_grad->matmul(*sigmoid_deriv);
+        prev = delta->mul(1);
+        new_grad->append(delta);
+    } else {
+        std::unique_ptr<CTorch::CTensor> delta = target->matmul(*weights->t())->hadamard(*output->sigmoidDerivative());
+        prev = delta->mul(1);
+        new_grad->append(delta);
     }
-    //dropout rate -> set a certain % to 0 
-    return delta->matmul(*weights->t());
+    return std::make_tuple(std::move(new_grad), std::move(prev));
 }
 
-std::unique_ptr<CTorch::CTensor> Cnn::CLinear::backgrad(std::unique_ptr<CTorch::CTensor>& ct) {
-    assert(ct->size() == 2 && "Expects tensor of size 2");
+std::unique_ptr<CTorch::CTensor> Cnn::CLinear::backpass(std::unique_ptr<CTorch::CTensor>& grad) {
+    std::unique_ptr<CTorch::CTensor> new_grad = std::move(grad);
+    std::unique_ptr<CTorch::CTensor> delta = new_grad->pop();
 
-    std::unique_ptr<CTorch::CTensor> nt = std::move(ct);
-
-    std::unique_ptr<CTorch::CTensor> sig_ct = nt.get()[0].sigmoid(true);
-    std::unique_ptr<CTorch::CTensor> delta = input->t()->matmul(*nt);
-
-    std::unique_ptr<CTorch::CTensor> weight_gradient = input->t()->matmul(*delta);
-    weights = weights->add(*weight_gradient->mul(learning_rate));
+    std::unique_ptr<CTorch::CTensor> weights_grad = input->t()->matmul(*delta);
+    weights = weights->add(*weights_grad->mul(learning_rate));
 
     if (bias) {
-        std::unique_ptr<CTorch::CTensor> bias_gradient = delta->sumLin();
-        biases = biases->add(*bias_gradient->mul(learning_rate));
+        std::unique_ptr<CTorch::CTensor> biases_grad = delta->sumLin();
+        biases = biases->add(*biases_grad->mul(learning_rate));
     }
-    std::unique_ptr<CTorch::CTensor> add_ct = delta->matmul(*weights->t());
-    nt->append(add_ct);
-}
-std::unique_ptr<CTorch::CTensor> Cnn::CLinear::backprop(std::unique_ptr<CTorch::CTensor>& ct) {
-    std::unique_ptr<CTorch::CTensor> nt = std::move(ct);
-    std::unique_ptr<CTorch::CTensor> temp = nt->pop();
-    backward(temp);
-    return nt;
+
+    return new_grad;
+
 }

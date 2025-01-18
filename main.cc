@@ -5,8 +5,9 @@
 
 int main() {
     CTorch torch;
-    std::unique_ptr<CTorch::CTensor> t = torch.randn(3, 3);
-    std::cout << *t << std::endl;
-    std::cout << *t->shape() << std::endl;
-    std::cout << t->size() << std::endl;
+    std::unique_ptr<CTorch::CTensor> t = torch.zeros(1, 0);
+    std::unique_ptr<CTorch::CTensor> l = std::make_unique<CTorch::CTensor>(std::vector<std::any>{std::vector<std::any>{}}, CTorch::Float32);
+    std::cout << *l << std::endl;
+    std::cout << *l->shape() << std::endl;
+    std::cout << l->size() << std::endl;
 }

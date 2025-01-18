@@ -26,7 +26,6 @@ class CTorch {
             public:
                 virtual ~DType() = default;
                 friend std::ostream& operator<<(std::ostream& os, const DType& dt);
-                using ReturnType = std::variant<std::int32_t, std::int64_t, float, double, std::vector<std::any>>;
                 virtual std::any getValue() const = 0;
         };
         class CInt32 : public DType {
@@ -95,6 +94,7 @@ class CTorch {
                 std::any getValue() const override;
                 int getType() const;
                 std::unique_ptr<CTensor> add(const CTensor& other) const;
+                std::unique_ptr<CTensor> hadamard(const CTensor& other) const;
                 std::unique_ptr<CTensor> matmul(const CTensor& other) const;
                 std::unique_ptr<CTensor> mul(float i) const;
                 std::unique_ptr<DType> dot(const CTensor& other) const;
@@ -102,6 +102,9 @@ class CTorch {
                 std::unique_ptr<CTensor> operator[](std::size_t dim) const;
                 //purely for backprop for linear layer
                 std::unique_ptr<CTensor> sigmoid(bool deriv=false) const;
+                std::unique_ptr<CTensor> sigmoidDerivative() const;
+                std::unique_ptr<CTensor> loss(std::unique_ptr<CTensor>& target);
+                std::unique_ptr<CTensor> lossDerivative(std::unique_ptr<CTensor>& target);
                 std::unique_ptr<CTensor> sumLin() const;
                 void append(std::unique_ptr<CTensor>& ct);
                 std::unique_ptr<CTensor> pop();

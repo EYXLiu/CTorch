@@ -6,32 +6,32 @@
 
 CTorch::CTensor::CTensor(std::vector<std::any> arr, CTorch::ScalarType dtype) : dtype{dtype} {
     try {
+        if (arr.size() == 0) {
+            return;
+        }
         for (auto& a : arr) {
-            if (std::any_cast<std::vector<std::any>>(&a) != nullptr) {
-                this->arr.push_back(std::make_unique<CTorch::CTensor>(std::any_cast<std::vector<std::any>>(arr[0]), dtype));
-                for (int i = 1; i < arr.size(); i++) {
-                    auto* vec = std::any_cast<std::vector<std::any>>(&arr[i]);
-                    if (vec == nullptr) {
-                        throw std::logic_error("not a sequence");
+            try {
+                this->arr.push_back(std::make_unique<CTorch::CTensor>(std::any_cast<std::vector<std::any>>(a), dtype));
+            } catch (const std::bad_any_cast &e) {
+                if (dtype == CTorch::Int32) {
+                    this->arr.push_back(std::make_unique<CTorch::CInt32>(std::any_cast<std::int32_t>(a)));
+                } else if (dtype == CTorch::Int64) {
+                    this->arr.push_back(std::make_unique<CTorch::CInt64>(std::any_cast<std::int64_t>(a)));
+                } else if (dtype == CTorch::Float32) {
+                    try {
+                        this->arr.push_back(std::make_unique<CTorch::CFloat32>(std::any_cast<float>(a)));
+                    } catch (const std::bad_any_cast &e) {
+                        try {
+                            this->arr.push_back(std::make_unique<CTorch::CFloat32>(static_cast<float>(std::any_cast<int32_t>(a))));
+                        } catch (const std::bad_any_cast &e) {
+                            throw std::logic_error("invalid input type");
+                        }
                     }
-                    auto* prev = std::any_cast<std::vector<std::any>>(&arr[i - 1]);
-                    if (vec->size() != prev->size()) {
-                        throw std::logic_error("expected sequence of length " + std::to_string(prev->size()) + "at dim " + std::to_string(i) + " (got " + std::to_string(vec->size()) + ")");
-                    }
-                    this->arr.push_back(std::make_unique<CTorch::CTensor>(std::any_cast<std::vector<std::any>>(arr[i]), dtype));
+                } else if (dtype == CTorch::Float64) {
+                    this->arr.push_back(std::make_unique<CTorch::CFloat64>(std::any_cast<double>(a)));
+                } else {
+                    throw std::logic_error("invalid data type");
                 }
-                break;
-            }
-            if (dtype == CTorch::Int32) {
-                this->arr.push_back(std::make_unique<CTorch::CInt32>(std::any_cast<std::int32_t>(a)));
-            } else if (dtype == CTorch::Int64) {
-                this->arr.push_back(std::make_unique<CTorch::CInt64>(std::any_cast<std::int64_t>(a)));
-            } else if (dtype == CTorch::Float32) {
-                this->arr.push_back(std::make_unique<CTorch::CFloat32>(std::any_cast<float>(a)));
-            } else if (dtype == CTorch::Float64) {
-                this->arr.push_back(std::make_unique<CTorch::CFloat64>(std::any_cast<double>(a)));
-            } else {
-                throw std::logic_error("invalid data type");
             }
         }
     } catch (const std::logic_error &e) {
@@ -88,6 +88,45 @@ std::unique_ptr<CTorch::CTensor> CTorch::CTensor::add(const CTorch::CTensor& oth
                 new_arr.push_back(std::any_cast<float>(this->arr[i].get()->getValue()) + std::any_cast<float>(other.arr[i].get()->getValue()));
             } else if (this->dtype == CTorch::Float64) {
                 new_arr.push_back(std::any_cast<double>(this->arr[i].get()->getValue()) + std::any_cast<double>(other.arr[i].get()->getValue()));
+            } else {
+                throw std::logic_error("invalid data type");
+            }
+        }
+        return std::make_unique<CTorch::CTensor>(new_arr, this->dtype);
+    } catch (const std::logic_error &e) {
+        std::cerr << "ValueError: " << e.what() << std::endl;
+        return std::make_unique<CTorch::CTensor>(std::vector<std::any>{}, this->dtype);
+    } catch (const std::bad_variant_access &e) {
+        std::cerr << "MismatchedType: " <<  e.what() << std::endl;
+        return std::make_unique<CTorch::CTensor>(std::vector<std::any>{}, this->dtype);
+    }
+}
+
+std::unique_ptr<CTorch::CTensor> CTorch::CTensor::hadamard(const CTorch::CTensor& other) const {
+    try {
+        if (this->dtype != other.dtype) {
+            throw std::logic_error("expected " + std::to_string(this->dtype) + " (got " + std::to_string(other.dtype) + ")");
+        }
+        if (this->arr.size() != other.arr.size()) {
+            throw std::logic_error("expected sequence of length " + std::to_string(this->arr.size()));
+        }
+        std::vector<std::any> new_arr;
+        for (int i = 0; i < this->arr.size(); i++) {
+            auto* ct = dynamic_cast<CTorch::CTensor*>(this->arr[i].get());
+            if (ct != nullptr) {
+                auto* other_ct = dynamic_cast<CTorch::CTensor*>(other.arr[i].get());
+                if (other_ct == nullptr || ct->arr.size() != other_ct->arr.size()) {
+                    throw std::logic_error("type mismatch, expected matrix received scalar");
+                }
+                new_arr.push_back((ct->hadamard(*other_ct))->getValue());
+            } else if (this->dtype == CTorch::Int32) {
+                new_arr.push_back(std::any_cast<std::int32_t>(this->arr[i].get()->getValue()) * std::any_cast<std::int32_t>(other.arr[i].get()->getValue()));
+            } else if (this->dtype == CTorch::Int64) {
+                new_arr.push_back(std::any_cast<std::int64_t>(this->arr[i].get()->getValue()) * std::any_cast<std::int64_t>(other.arr[i].get()->getValue()));
+            } else if (this->dtype == CTorch::Float32) {
+                new_arr.push_back(std::any_cast<float>(this->arr[i].get()->getValue()) * std::any_cast<float>(other.arr[i].get()->getValue()));
+            } else if (this->dtype == CTorch::Float64) {
+                new_arr.push_back(std::any_cast<double>(this->arr[i].get()->getValue()) * std::any_cast<double>(other.arr[i].get()->getValue()));
             } else {
                 throw std::logic_error("invalid data type");
             }
@@ -312,6 +351,61 @@ std::unique_ptr<CTorch::CTensor> CTorch::CTensor::sigmoid(bool deriv) const {
     return std::make_unique<CTorch::CTensor>(temp, dtype);
 }
 
+std::unique_ptr<CTorch::CTensor> CTorch::CTensor::sigmoidDerivative() const {
+    std::unique_ptr<CTorch::CTensor> derivative = this->sigmoid(true);
+    std::vector<std::any> temp;
+    for (int i = 0; i < arr.size(); i++) {
+        if (dtype == CTorch::Int32) {
+            temp.push_back(std::any_cast<std::int32_t>(derivative.get()[i].getValue()) * (1 - std::any_cast<std::int32_t>(derivative.get()[i].getValue())));
+        } else if (dtype == CTorch::Int64) {
+            temp.push_back(std::any_cast<std::int64_t>(derivative.get()[i].getValue()) * (1 - std::any_cast<std::int64_t>(derivative.get()[i].getValue())));
+        } else if (dtype == CTorch::Float32) {
+            temp.push_back(std::any_cast<float>(derivative.get()[i].getValue()) * (1 - std::any_cast<float>(derivative.get()[i].getValue())));
+        } else if (dtype == CTorch::Float64) {
+            temp.push_back(std::any_cast<double>(derivative.get()[i].getValue()) * (1 - std::any_cast<double>(derivative.get()[i].getValue())));
+        } else {
+            throw std::logic_error("invalid data type");
+        }
+    }
+    return std::make_unique<CTorch::CTensor>(temp, dtype);
+}
+
+std::unique_ptr<CTorch::CTensor> CTorch::CTensor::loss(std::unique_ptr<CTorch::CTensor>& target) {
+    std::vector<std::any> temp;
+    for (int i = 0; i < arr.size(); i++) {
+        if (dtype == CTorch::Int32) {
+            temp.push_back(std::pow(std::any_cast<std::int32_t>(arr[i].get()) - std::any_cast<std::int32_t>(target->arr[i].get()), 2));
+        } else if (dtype == CTorch::Int64) {
+            temp.push_back(std::pow(std::any_cast<std::int64_t>(arr[i].get()) - std::any_cast<std::int64_t>(target->arr[i].get()), 2));
+        } else if (dtype == CTorch::Float32) {
+            temp.push_back(std::pow(std::any_cast<float>(arr[i].get()) - std::any_cast<float>(target->arr[i].get()), 2));
+        } else if (dtype == CTorch::Float64) {
+            temp.push_back(std::pow(std::any_cast<double>(arr[i].get()) - std::any_cast<double>(target->arr[i].get()), 2));
+        } else {
+            throw std::logic_error("invalid data type");
+        }
+    }
+    return std::make_unique<CTorch::CTensor>(temp, dtype);
+}
+
+std::unique_ptr<CTorch::CTensor> CTorch::CTensor::lossDerivative(std::unique_ptr<CTorch::CTensor>& target) {
+    std::vector<std::any> temp;
+    for (int i = 0; i < arr.size(); i++) {
+        if (dtype == CTorch::Int32) {
+            temp.push_back(2 * (std::any_cast<std::int32_t>(arr[i].get()) - std::any_cast<std::int32_t>(target->arr[i].get())));
+        } else if (dtype == CTorch::Int64) {
+            temp.push_back(2 * (std::any_cast<std::int64_t>(arr[i].get()) - std::any_cast<std::int64_t>(target->arr[i].get())));
+        } else if (dtype == CTorch::Float32) {
+            temp.push_back(2 * (std::any_cast<float>(arr[i].get()) - std::any_cast<float>(target->arr[i].get())));
+        } else if (dtype == CTorch::Float64) {
+            temp.push_back(2 * (std::any_cast<double>(arr[i].get()) - std::any_cast<double>(target->arr[i].get())));
+        } else {
+            throw std::logic_error("invalid data type");
+        }
+    }
+    return std::make_unique<CTorch::CTensor>(temp, dtype);
+}
+
 std::unique_ptr<CTorch::CTensor> CTorch::CTensor::sumLin() const {
     assert(size() == 2 && "Expected size of 2");
     std::vector<std::vector<std::any>> temp;
@@ -399,6 +493,7 @@ std::unique_ptr<CTorch::CTensor::Size> CTorch::CTensor::shape() const {
     auto* ct = dynamic_cast<CTorch::CTensor*>(arr[0].get());
     while (ct != nullptr) {
         shape.push_back(ct->arr.size());
+        if (ct->arr.size() == 0) { break; }
         ct = dynamic_cast<CTorch::CTensor*>(ct->arr[0].get());
     }
     return std::make_unique<CTorch::CTensor::Size>(shape);
@@ -409,6 +504,7 @@ int CTorch::CTensor::size() const {
     while (true) {
         try {
             std::vector<std::any> t = std::any_cast<std::vector<std::any>>(temp);
+            if (t.empty()) { return x; }
             x++;
             temp = t[0];
         } catch (const std::bad_any_cast &e) {

@@ -13,12 +13,11 @@ class Cnn {
     public:
         class CModule {
             public:
-                virtual ~CModule();
+                virtual ~CModule() {};
                 virtual std::unique_ptr<CTorch::CTensor> forward(std::unique_ptr<CTorch::CTensor>& input) = 0;
-                virtual std::unique_ptr<CTorch::CTensor> backward(std::unique_ptr<CTorch::CTensor>& grad) = 0;
                 //backpropagation with autograd (more efficient for )
-                virtual std::unique_ptr<CTorch::CTensor> backgrad(std::unique_ptr<CTorch::CTensor>& grad) = 0;
-                virtual std::unique_ptr<CTorch::CTensor> backprop(std::unique_ptr<CTorch::CTensor>& grad) = 0;
+                virtual std::tuple<std::unique_ptr<CTorch::CTensor>, std::unique_ptr<CTorch::CTensor>> backgrad(std::unique_ptr<CTorch::CTensor>& grad, std::unique_ptr<CTorch::CTensor>& target) = 0;
+                virtual std::unique_ptr<CTorch::CTensor> backpass(std::unique_ptr<CTorch::CTensor>& grad) = 0;
         };
         class CSequential : public CModule {
             std::vector<std::unique_ptr<CModule>> modules;
@@ -26,9 +25,8 @@ class Cnn {
                 CSequential(std::vector<std::unique_ptr<CModule>>& modules);
                 ~CSequential();
                 std::unique_ptr<CTorch::CTensor> forward(std::unique_ptr<CTorch::CTensor>& input);
-                std::unique_ptr<CTorch::CTensor> backward(std::unique_ptr<CTorch::CTensor>& grad);
-                std::unique_ptr<CTorch::CTensor> backgrad(std::unique_ptr<CTorch::CTensor>& grad);
-                std::unique_ptr<CTorch::CTensor> backprop(std::unique_ptr<CTorch::CTensor>& grad);
+                std::tuple<std::unique_ptr<CTorch::CTensor>, std::unique_ptr<CTorch::CTensor>> backgrad(std::unique_ptr<CTorch::CTensor>& grad, std::unique_ptr<CTorch::CTensor>& target);
+                std::unique_ptr<CTorch::CTensor> backpass(std::unique_ptr<CTorch::CTensor>& grad);
                 void append(std::unique_ptr<CModule> module);
         };
         class CModuleList : public CModule {
@@ -37,9 +35,8 @@ class Cnn {
                 CModuleList(std::vector<std::unique_ptr<CModule>>& modules);
                 ~CModuleList();
                 std::unique_ptr<CTorch::CTensor> forward(std::unique_ptr<CTorch::CTensor>& input);
-                std::unique_ptr<CTorch::CTensor> backward(std::unique_ptr<CTorch::CTensor>& grad);
-                std::unique_ptr<CTorch::CTensor> backgrad(std::unique_ptr<CTorch::CTensor>& grad);
-                std::unique_ptr<CTorch::CTensor> backprop(std::unique_ptr<CTorch::CTensor>& grad);
+                std::tuple<std::unique_ptr<CTorch::CTensor>, std::unique_ptr<CTorch::CTensor>> backgrad(std::unique_ptr<CTorch::CTensor>& grad, std::unique_ptr<CTorch::CTensor>& target);
+                std::unique_ptr<CTorch::CTensor> backpass(std::unique_ptr<CTorch::CTensor>& grad);
                 void append(std::unique_ptr<CModule> module);
                 void extend(std::vector<std::unique_ptr<CModule>> modules);
                 void insert(int index, std::unique_ptr<CModule> module);
@@ -50,9 +47,8 @@ class Cnn {
                 CModuleDict(std::map<std::string, std::unique_ptr<CModule>>& modules);
                 ~CModuleDict();
                 std::unique_ptr<CTorch::CTensor> forward(std::unique_ptr<CTorch::CTensor>& input);
-                std::unique_ptr<CTorch::CTensor> backward(std::unique_ptr<CTorch::CTensor>& grad);
-                std::unique_ptr<CTorch::CTensor> backgrad(std::unique_ptr<CTorch::CTensor>& grad);
-                std::unique_ptr<CTorch::CTensor> backprop(std::unique_ptr<CTorch::CTensor>& grad);
+                std::tuple<std::unique_ptr<CTorch::CTensor>, std::unique_ptr<CTorch::CTensor>> backgrad(std::unique_ptr<CTorch::CTensor>& grad, std::unique_ptr<CTorch::CTensor>& target);
+                std::unique_ptr<CTorch::CTensor> backpass(std::unique_ptr<CTorch::CTensor>& grad);
                 void clear();
                 std::unique_ptr<CModule> pop(std::string key);
                 void update(std::map<std::string, std::unique_ptr<CModule>> modules);
@@ -78,7 +74,6 @@ class Cnn {
                 CConv1d(int in_channels, int out_channels, int kernel_size, int stride=1, int padding=0, int dilation=1, bool bias=true);
                 ~CConv1d();
                 std::unique_ptr<CTorch::CTensor> forward(std::unique_ptr<CTorch::CTensor>& input);
-                std::unique_ptr<CTorch::CTensor> backward(std::unique_ptr<CTorch::CTensor>& grad);
         };
         class CConv2d : public C_ConvNd {
             std::tuple<int, int> kernel_size;
@@ -86,7 +81,6 @@ class Cnn {
                 CConv2d(int in_channels, int out_channels, std::tuple<int, int> kernel_size, int stride=1, int padding=0, int dilation=1, bool bias=true);
                 ~CConv2d();
                 std::unique_ptr<CTorch::CTensor> forward(std::unique_ptr<CTorch::CTensor>& input);
-                std::unique_ptr<CTorch::CTensor> backward(std::unique_ptr<CTorch::CTensor>& grad);
         };
         class CConv3d : public C_ConvNd {
             std::tuple<int, int, int> kernel_size;
@@ -94,13 +88,13 @@ class Cnn {
                 CConv3d(int in_channels, int out_channels, std::tuple<int, int, int> kernel_size, int stride=1, int padding=0, int dilation=1, bool bias=true);
                 ~CConv3d();
                 std::unique_ptr<CTorch::CTensor> forward(std::unique_ptr<CTorch::CTensor>& input);
-                std::unique_ptr<CTorch::CTensor> backward(std::unique_ptr<CTorch::CTensor>& grad);
         };
         class CLinear : public CModule {
             std::unique_ptr<CTorch::CTensor> weights;
             std::unique_ptr<CTorch::CTensor> biases;
             std::unique_ptr<CTorch::CTensor> input;
             std::unique_ptr<CTorch::CTensor> output;
+            std::unique_ptr<CTorch::CTensor> activated;
             int in_features;
             int out_features;
             bool bias;
@@ -109,9 +103,8 @@ class Cnn {
                 CLinear(int in_features, int out_features, bool bias=true);
                 ~CLinear();
                 std::unique_ptr<CTorch::CTensor> forward(std::unique_ptr<CTorch::CTensor>& input);
-                std::unique_ptr<CTorch::CTensor> backward(std::unique_ptr<CTorch::CTensor>& grad);
-                std::unique_ptr<CTorch::CTensor> backgrad(std::unique_ptr<CTorch::CTensor>& grad);
-                std::unique_ptr<CTorch::CTensor> backprop(std::unique_ptr<CTorch::CTensor>& grad);
+                std::tuple<std::unique_ptr<CTorch::CTensor>, std::unique_ptr<CTorch::CTensor>> backgrad(std::unique_ptr<CTorch::CTensor>& grad, std::unique_ptr<CTorch::CTensor>& target);
+                std::unique_ptr<CTorch::CTensor> backpass(std::unique_ptr<CTorch::CTensor>& grad);
         };
 
 };
