@@ -1,5 +1,5 @@
 # CTorch Library
-* Made with C++ and Object Oriented Programming principles
+* Made with C++ and Object Oriented Programming principles and the Factory Design Pattern
 * Fully supported tensor and type classes with automatic memory management
 * Implmented both forward and backwards propagation for Module containers and the Linear layer
 * Implemented gradient accumulation, explained below
