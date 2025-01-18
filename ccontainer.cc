@@ -11,27 +11,20 @@ std::unique_ptr<CTorch::CTensor> Cnn::CSequential::forward(std::unique_ptr<CTorc
     }
     return ct;
 };
-std::unique_ptr<CTorch::CTensor> Cnn::CSequential::backward(std::unique_ptr<CTorch::CTensor>& grad) {
+std::tuple<std::unique_ptr<CTorch::CTensor>, std::unique_ptr<CTorch::CTensor>> Cnn::CSequential::backgrad(std::unique_ptr<CTorch::CTensor>& grad, std::unique_ptr<CTorch::CTensor>& target) {
+    std::tuple t = std::make_tuple(std::move(grad), std::move(target));
+    for (auto& m : modules) {
+        t = m->backgrad(std::get<0>(t), std::get<1>(t));
+    }
+    return t;
+};
+std::unique_ptr<CTorch::CTensor> Cnn::CSequential::backpass(std::unique_ptr<CTorch::CTensor>& grad) {
     std::unique_ptr<CTorch::CTensor> ct = std::move(grad);
-    for (int i = modules.size() - 1; i >= 0; i--) {
-        ct = modules[i]->backward(ct);
+    for (auto& m : modules) {
+        ct = m->backpass(ct);
     }
     return ct;
 };
-std::unique_ptr<CTorch::CTensor> Cnn::CSequential::backgrad(std::unique_ptr<CTorch::CTensor>& grad) {
-    std::unique_ptr<CTorch::CTensor> ct = std::move(grad);
-    for (auto& m : modules) {
-         ct = m->backgrad(ct);
-    }
-    return ct;
-}
-std::unique_ptr<CTorch::CTensor> Cnn::CSequential::backprop(std::unique_ptr<CTorch::CTensor>& grad) {
-    std::unique_ptr<CTorch::CTensor> ct = std::move(grad);
-    for (auto& m : modules) {
-        ct = m->backprop(ct);
-    }
-    return ct;
-}
 void Cnn::CSequential::append(std::unique_ptr<Cnn::CModule> module) {
     modules.push_back(std::move(module));
 };
@@ -45,10 +38,17 @@ std::unique_ptr<CTorch::CTensor> Cnn::CModuleList::forward(std::unique_ptr<CTorc
     }
     return ct;
 };
-std::unique_ptr<CTorch::CTensor> Cnn::CModuleList::backward(std::unique_ptr<CTorch::CTensor>& grad) {
+std::tuple<std::unique_ptr<CTorch::CTensor>, std::unique_ptr<CTorch::CTensor>> Cnn::CModuleList::backgrad(std::unique_ptr<CTorch::CTensor>& grad, std::unique_ptr<CTorch::CTensor>& target) {
+    std::tuple t = std::make_tuple(std::move(grad), std::move(target));
+    for (auto& m : modules) {
+        t = m->backgrad(std::get<0>(t), std::get<1>(t));
+    }
+    return t;
+};
+std::unique_ptr<CTorch::CTensor> Cnn::CModuleList::backpass(std::unique_ptr<CTorch::CTensor>& grad) {
     std::unique_ptr<CTorch::CTensor> ct = std::move(grad);
-    for (int i = modules.size() - 1; i >= 0; i--) {
-        ct = modules[i]->backward(ct);
+    for (auto& m : modules) {
+        ct = m->backpass(ct);
     }
     return ct;
 };
@@ -74,10 +74,17 @@ std::unique_ptr<CTorch::CTensor> Cnn::CModuleDict::forward(std::unique_ptr<CTorc
     }
     return ct;
 };
-std::unique_ptr<CTorch::CTensor> Cnn::CModuleDict::backward(std::unique_ptr<CTorch::CTensor>& grad) {
+std::tuple<std::unique_ptr<CTorch::CTensor>, std::unique_ptr<CTorch::CTensor>> Cnn::CModuleDict::backgrad(std::unique_ptr<CTorch::CTensor>& grad, std::unique_ptr<CTorch::CTensor>& target) {
+    std::tuple t = std::make_tuple(std::move(grad), std::move(target));
+    for (auto& m : modules) {
+        t = m.second->backgrad(std::get<0>(t), std::get<1>(t));
+    }
+    return t;
+};
+std::unique_ptr<CTorch::CTensor> Cnn::CModuleDict::backpass(std::unique_ptr<CTorch::CTensor>& grad) {
     std::unique_ptr<CTorch::CTensor> ct = std::move(grad);
     for (auto& m : modules) {
-        ct = m.second->backward(ct);
+        ct = m.second->backpass(ct);
     }
     return ct;
 };
