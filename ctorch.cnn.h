@@ -106,7 +106,17 @@ class Cnn {
                 std::tuple<std::unique_ptr<CTorch::CTensor>, std::unique_ptr<CTorch::CTensor>> backgrad(std::unique_ptr<CTorch::CTensor>& grad, std::unique_ptr<CTorch::CTensor>& target);
                 std::unique_ptr<CTorch::CTensor> backpass(std::unique_ptr<CTorch::CTensor>& grad);
         };
-
+        class CEmbedding : public CModule {
+            std::map<int, std::unique_ptr<CTorch::CTensor>> embeddings;
+            int num_embeddings;
+            int embedding_dim;
+            public:
+                CEmbedding(int num_embeddings, int embedding_dim);
+                ~CEmbedding();
+                std::unique_ptr<CTorch::CTensor> forward(std::unique_ptr<CTorch::CTensor>& input);
+                std::tuple<std::unique_ptr<CTorch::CTensor>, std::unique_ptr<CTorch::CTensor>> backgrad(std::unique_ptr<CTorch::CTensor>& grad, std::unique_ptr<CTorch::CTensor>& target);
+                std::unique_ptr<CTorch::CTensor> backpass(std::unique_ptr<CTorch::CTensor>& grad);
+        };
 };
 
 #endif // CTORCH_CNN_H
