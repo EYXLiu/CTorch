@@ -2,7 +2,7 @@
 #include <cmath>
 #include <cassert>
 
-void ReLU(CTorch::CTensor*& ct) {
+void ReLU(std::unique_ptr<CTorch::CTensor>& ct) {
     assert(ct->size() == 1 && "Expected input of size 1");
     std::vector<std::any> new_arr;
     int type = ct->getType();
@@ -20,11 +20,10 @@ void ReLU(CTorch::CTensor*& ct) {
             throw std::logic_error("invalid data type");
         }
     }
-    delete ct;
-    ct = new CTorch::CTensor(new_arr, static_cast<CTorch::ScalarType>(type));
+    ct = std::make_unique<CTorch::CTensor>(new_arr, static_cast<CTorch::ScalarType>(type));
 }
 
-void exp(CTorch::CTensor*& ct) {
+void exp(std::unique_ptr<CTorch::CTensor>& ct) {
     assert(ct->size() == 1 && "Expected input of size 1");
     std::vector<std::any> new_arr;
     int type = ct->getType();
@@ -42,11 +41,10 @@ void exp(CTorch::CTensor*& ct) {
             throw std::logic_error("invalid data type");
         }
     }
-    delete ct; 
-    ct = new CTorch::CTensor(new_arr, static_cast<CTorch::ScalarType>(type));
+    ct = std::make_unique<CTorch::CTensor>(new_arr, static_cast<CTorch::ScalarType>(type));
 }
 
-void softmax(CTorch::CTensor*& ct) {
+void softmax(std::unique_ptr<CTorch::CTensor>& ct) {
     assert(ct->size() == 1 && "Expected input of size 1");
     exp(ct);
     std::vector<std::any> new_arr;
@@ -77,11 +75,10 @@ void softmax(CTorch::CTensor*& ct) {
             new_arr.push_back(static_cast<double>(std::round(std::any_cast<double>(a) / total)));
         }
     }
-    delete ct;
-    ct = new CTorch::CTensor(new_arr, static_cast<CTorch::ScalarType>(type));
+    ct = std::make_unique<CTorch::CTensor>(new_arr, static_cast<CTorch::ScalarType>(type));
 }
 
-void sigmoid(CTorch::CTensor*& ct) {
+void sigmoid(std::unique_ptr<CTorch::CTensor>& ct) {
     assert(ct->size() == 1 && "Expected input of size 1");
     std::vector<std::any> new_arr;
     int type = ct->getType();
@@ -99,6 +96,5 @@ void sigmoid(CTorch::CTensor*& ct) {
             throw std::logic_error("invalid data type");
         }
     }
-    delete ct; 
-    ct = new CTorch::CTensor(new_arr, static_cast<CTorch::ScalarType>(type));
+    ct = std::make_unique<CTorch::CTensor>(new_arr, static_cast<CTorch::ScalarType>(type));
 }

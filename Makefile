@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -arch arm64 -std=c++17 -Wall -MMD -I/opt/X11/include
 EXEC = ctorch
-OBJECTS = dtype.o ctensor.o cfunctional.o clinear.o main.o
+OBJECTS = dtype.o ctensor.o cfunctional.o clinear.o ccontainer.o main.o 
 DEPENDS = ${OBJECTS:.o=.d}
 
 ${EXEC}: ${OBJECTS}
