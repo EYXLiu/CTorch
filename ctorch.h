@@ -95,10 +95,11 @@ class CTorch {
                 int getType() const;
                 std::unique_ptr<CTensor> add(const CTensor& other) const;
                 std::unique_ptr<CTensor> hadamard(const CTensor& other) const;
-                std::unique_ptr<CTensor> matmul(const CTensor& other) const;
+                std::unique_ptr<CTensor> matmul(const CTensor& other, bool in=false) const;
                 std::unique_ptr<CTensor> mul(float i) const;
-                std::unique_ptr<DType> dot(const CTensor& other) const;
+                std::unique_ptr<CTensor> dot(const CTensor& other) const;
                 std::unique_ptr<CTensor> unsqueeze(int dim) const;
+                std::unique_ptr<CTensor> strip() const;
                 std::unique_ptr<CTensor> operator[](std::size_t dim) const;
                 //purely for backprop for linear layer
                 std::unique_ptr<CTensor> sigmoid(bool deriv=false) const;

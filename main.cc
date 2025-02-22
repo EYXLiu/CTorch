@@ -111,7 +111,6 @@ int main() {
             std::unique_ptr<CTorch::CTensor> expected = std::make_unique<CTorch::CTensor>(ytrain[j]);
             std::unique_ptr<CTorch::CTensor> grad;
             std::tuple<std::unique_ptr<CTorch::CTensor>, std::unique_ptr<CTorch::CTensor>> gradient = nn->backgrad(grad, expected);
-            std::cout << "finished" << std::endl;
             nn->backpass(std::get<0>(gradient));
         }
         std::cout << "Epoch " << i << std::endl;

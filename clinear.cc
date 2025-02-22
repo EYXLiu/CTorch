@@ -37,16 +37,15 @@ std::tuple<std::unique_ptr<CTorch::CTensor>, std::unique_ptr<CTorch::CTensor>> C
         std::unique_ptr<CTorch::CTensor> delta = output_grad->hadamard(*sigmoid_deriv);
         std::unique_ptr<CTorch::CTensor> weights_grad = (input->t())->matmul(*delta);
         new_grad = weights_grad->unsqueeze(0);
-        prev = std::move(weights_grad);
+        prev = weights->t()->matmul(*delta);
         if (bias) {
             std::unique_ptr<CTorch::CTensor> biases_grad = std::move(delta);
             new_grad->append(biases_grad);
         }
     } else {
-        std::cout << *target << std::endl;
-        std::unique_ptr<CTorch::CTensor> delta = target->matmul(*weights->t())->hadamard(*output->sigmoidDerivative());
-        std::unique_ptr<CTorch::CTensor> weights_grad = input->t()->matmul(*delta);
-        std::cout << "weight" << std::endl;
+        std::cout << *target->shape() << std::endl;
+        std::unique_ptr<CTorch::CTensor> delta = target->hadamard(*output->sigmoidDerivative()->unsqueeze(1));
+        std::unique_ptr<CTorch::CTensor> weights_grad = delta->matmul(*input);
         prev = weights_grad->mul(1);
         new_grad->append(weights_grad);
     }
@@ -55,6 +54,7 @@ std::tuple<std::unique_ptr<CTorch::CTensor>, std::unique_ptr<CTorch::CTensor>> C
 
 std::unique_ptr<CTorch::CTensor> Cnn::CLinear::backpass(std::unique_ptr<CTorch::CTensor>& grad) {
     std::unique_ptr<CTorch::CTensor> new_grad = std::move(grad);
+    std::cout << *new_grad->shape() << std::endl;
     std::unique_ptr<CTorch::CTensor> weights_grad = new_grad->pop();
     weights = weights->add(*weights_grad->mul(learning_rate));
     if (bias) {

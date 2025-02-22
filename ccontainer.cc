@@ -18,7 +18,7 @@ std::tuple<std::unique_ptr<CTorch::CTensor>, std::unique_ptr<CTorch::CTensor>> C
 };
 std::unique_ptr<CTorch::CTensor> Cnn::CSequential::backpass(std::unique_ptr<CTorch::CTensor>& grad) {
     std::unique_ptr<CTorch::CTensor> ct = std::move(grad);
-    std::cout << *ct << std::endl;
+    std::cout << *ct->shape() << std::endl;
     for (auto it = modules.rbegin(); it != modules.rend(); it++) {
         ct = (*it)->backpass(ct);
     }
